@@ -2,6 +2,10 @@
 
 Application web d'une seule page pour suivre des actions achetées (titres américains et canadiens) : gains et pertes, code de couleur, alertes, regroupement par compte (REER, CELI, NR…), étiquettes et graphiques.
 
+![Capture de l'app](docs/capture.png)
+
+*Capture faite avec des données simulées.*
+
 ## Utilisation
 
 1. Ouvre `index.html` dans Chrome ou Edge (double-clic).
