@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi de portefeuille</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#16181d; --muted:#6b7280; --line:#e5e7eb;
+    --accent:#2f5bea;
+    --g2:#0f7a3d; --g2bg:#d7f2e1; --g1:#2e9e5b; --g1bg:#ecf8f0;
+    --n:#6b7280; --nbg:#f1f2f4;
+    --o:#b45309; --obg:#fdf0dc; --r:#b91c1c; --rbg:#fde2e2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#111317; --card:#1a1d23; --ink:#e8eaed; --muted:#9aa1ab; --line:#2a2f37;
+      --accent:#7c9cff;
+      --g2:#5fdc8f; --g2bg:#123823; --g1:#8fe0ad; --g1bg:#16291e;
+      --n:#9aa1ab; --nbg:#22262d;
+      --o:#f5b25a; --obg:#3a2a12; --r:#ff8a8a; --rbg:#3d1a1a;
+    }
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1200px;margin:0 auto;padding:20px 16px 40px}
+  header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+  h1{font-size:20px;margin:0}
+  .sub{color:var(--muted);font-size:12px}
+  .filebar{font-size:12px;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .filebar.ok{color:var(--g1)} .filebar.warn{color:var(--o)} .filebar.off{color:var(--muted)}
+  .filebar button{font-size:12px;padding:1px 8px}
+  .box{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+  .btns{display:flex;gap:8px;flex-wrap:wrap}
+  button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.link{border:none;background:none;color:var(--accent);padding:2px 4px}
+  button:disabled{opacity:.5;cursor:default}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .tile .k{color:var(--muted);font-size:12px}
+  .tile .v{font-size:20px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+  .tile .s{font-size:12px;margin-top:2px;font-variant-numeric:tabular-nums}
+  .alerts{margin-bottom:14px;display:flex;flex-direction:column;gap:6px}
+  .alert{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--obg);color:var(--ink);border:1px solid var(--o);border-left-width:4px;border-radius:8px;padding:8px 12px}
+  .alert.up{background:var(--g1bg);border-color:var(--g2)}
+  .alert.down{background:var(--rbg);border-color:var(--r)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto}
+  table{border-collapse:collapse;width:100%;min-width:980px}
+  th,td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+  th{font-size:12px;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--card)}
+  th:first-child,td:first-child{text-align:left}
+  tbody tr{border-left:4px solid transparent}
+  tbody tr:hover{background:var(--nbg)}
+  tfoot td{font-weight:600;border-bottom:none}
+  tr.grp td{background:var(--nbg);font-weight:600}
+  tbody tr.grp{border-left-color:var(--line)}
+  tr.grp:hover{background:var(--nbg)}
+  .filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
+  .filters .lbl{font-size:12px;color:var(--muted);margin-right:2px}
+  .filters .sep{width:1px;height:20px;background:var(--line);margin:0 6px}
+  .chip{padding:4px 11px;border-radius:999px;font-size:13px}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .meta{font-size:11px;color:var(--muted);margin-top:1px}
+  .acct{display:inline-block;font-size:10px;font-weight:600;padding:0 5px;border:1px solid var(--line);border-radius:4px;margin-right:4px;color:var(--muted)}
+  .sym{font-weight:600}
+  .ccy{font-size:11px;color:var(--muted);margin-left:4px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:600}
+  .t-g2{color:var(--g2)} .t-g2 .pill,.pill.t-g2{background:var(--g2bg)}
+  .t-g1{color:var(--g1)} .pill.t-g1{background:var(--g1bg)}
+  .t-n{color:var(--n)} .pill.t-n{background:var(--nbg)}
+  .t-o{color:var(--o)} .pill.t-o{background:var(--obg)}
+  .t-r{color:var(--r)} .pill.t-r{background:var(--rbg)}
+  tr.b-g2{border-left-color:var(--g2)} tr.b-g1{border-left-color:var(--g1)} tr.b-n{border-left-color:var(--line)}
+  tr.b-o{border-left-color:var(--o)} tr.b-r{border-left-color:var(--r)}
+  .muted{color:var(--muted)}
+  .bell{margin-left:4px}
+  .manual{font-size:10px;color:var(--muted);margin-left:3px}
+  .empty{padding:40px 20px;text-align:center;color:var(--muted)}
+  .viz{--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#6250d6;--s8:#e34948;--grid:#eceef1;--axis:#c9cdd3}
+  @media (prefers-color-scheme: dark){ .viz{--s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#0ca30c;--s7:#9085e9;--s8:#e66767;--grid:#262a31;--axis:#3a404a} }
+  .chartcard{margin-top:16px;padding:14px 16px;overflow:visible}
+  .chart-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+  .chart-head h2{font-size:15px;margin:0}
+  .ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:none;border-radius:0;padding:5px 10px;font-size:13px}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--accent);color:#fff}
+  .chart-sub{font-size:12px;color:var(--muted);margin:8px 0 4px}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink);margin:6px 0}
+  .chart-legend span{display:inline-flex;align-items:center;gap:6px}
+  .key{display:inline-block;width:14px;height:0;border-top:2px solid}
+  .chart-wrap{position:relative}
+  .chart-wrap svg{display:block;width:100%;overflow:visible}
+  .chart-wrap text{font:11px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--muted);font-variant-numeric:tabular-nums}
+  .chart-wrap text.dl{fill:var(--ink);font-size:12px}
+  .tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.12);display:none;min-width:150px;z-index:2}
+  .tip .d{color:var(--muted);margin-bottom:4px}
+  .tip .row{display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .tip .row b{font-variant-numeric:tabular-nums;min-width:72px;text-align:right}
+  .tip .row span{color:var(--muted)}
+  .chart-empty{padding:30px 10px;text-align:center;color:var(--muted)}
+  input.sel{margin:0 6px 0 0;vertical-align:-2px;cursor:pointer}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 2px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+  footer{margin-top:14px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  #status{min-height:18px}
+  /* dialogs */
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding:40px 12px;overflow:auto;z-index:10}
+  .backdrop.open{display:flex}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:12px;width:100%;max-width:520px;padding:18px 20px}
+  .modal h2{margin:0 0 12px;font-size:17px}
+  .modal h3{margin:16px 0 6px;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:7px 9px}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+  .full{grid-column:1/-1}
+  .hint{font-size:12px;color:var(--muted);margin:6px 0 0}
+  .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+  .err{color:var(--r);font-size:12px;margin-top:8px;min-height:16px}
+  textarea{width:100%;min-height:140px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+</style>
+</head>
+<body class="viz">
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Suivi de portefeuille</h1>
+      <div class="sub" id="lastUpdate">Aucun prix chargé</div>
+      <div class="filebar off" id="fileBar"></div>
+    </div>
+    <div class="btns">
+      <button class="primary" id="btnAdd">+ Ajouter une position</button>
+      <button id="btnRefresh">↻ Rafraîchir les prix</button>
+      <button id="btnSettings">Réglages</button>
+      <button id="btnData">Sauvegarde</button>
+    </div>
+  </header>
+
+  <div class="alerts" id="alerts"></div>
+  <div class="filters" id="filters"></div>
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+    <div class="empty" id="empty" hidden>
+      Aucune position pour l'instant.<br>Clique sur <b>+ Ajouter une position</b> pour commencer.
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="card chartcard viz" id="chartCard">
+    <div class="chart-head">
+      <h2>Graphiques</h2>
+      <div class="ctrls">
+        <div class="seg" id="cMode"><button data-mode="gain">Gain ($)</button><button data-mode="perf">Performance (%)</button></div>
+        <div class="seg" id="cStack"><button data-stack="over">Superposé</button><button data-stack="sum">Total</button></div>
+        <div class="seg" id="cPeriod"><button data-period="1M">1 m</button><button data-period="3M">3 m</button><button data-period="6M">6 m</button><button data-period="1A">1 an</button><button data-period="ALL">Tout</button></div>
+      </div>
+    </div>
+    <div class="chart-sub" id="chartSub"></div>
+    <div class="chart-legend" id="chartLegend"></div>
+    <div class="chart-wrap" id="chartWrap"><svg id="chartSvg" role="img" aria-label="Graphique"></svg><div class="tip" id="chartTip"></div></div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px">
+      <button class="link" id="cClear">Effacer la sélection</button>
+      <button class="link" id="cTable">Voir les données</button>
+    </div>
+    <div id="chartTable" hidden></div>
+  </div>
+
+  <footer>
+    <div id="status"></div>
+    <div id="quota"></div>
+  </footer>
+</div>
+
+<!-- Position dialog -->
+<div class="backdrop" id="dlgPos">
+  <form class="modal" id="formPos" autocomplete="off">
+    <h2 id="posTitle">Ajouter une position</h2>
+    <div class="grid">
+      <label>Symbole
+        <input name="symbol" required placeholder="AAPL, SHOP.TO, …">
+      </label>
+      <label>Quantité
+        <input name="qty" type="number" step="any" min="0" required>
+      </label>
+      <label>Date d'achat
+        <input name="date" type="date" required>
+      </label>
+      <label>Prix payé par action
+        <input name="price" type="number" step="any" min="0" placeholder="Vide = clôture du jour">
+      </label>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <label>Compte
+        <input name="account" list="accountList" placeholder="REER, CELI, NR…" maxlength="30">
+      </label>
+      <label>Étiquettes (séparées par des virgules)
+        <input name="tags" placeholder="ex. dividendes, tech" maxlength="120">
+      </label>
+    </div>
+    <datalist id="accountList"><option value="REER"><option value="CELI"><option value="NR"><option value="CELIAPP"><option value="FERR"><option value="REEE"><option value="CRI"></datalist>
+    <p class="hint">Titres canadiens : ajoute <b>.TO</b> (TSX) ou <b>.V</b> (croissance TSX). Sans suffixe = titre américain en $ US.
+    Si tu laisses le prix vide, l'app prend la clôture à la date d'achat (fonctionne pour les ~100 derniers jours de bourse).</p>
+
+    <h3>Alertes (optionnel)</h3>
+    <div class="grid">
+      <label>Prix monte au-dessus de
+        <input name="aAbove" type="number" step="any" min="0">
+      </label>
+      <label>Prix descend sous
+        <input name="aBelow" type="number" step="any" min="0">
+      </label>
+      <label>Gain atteint (%)
+        <input name="aGain" type="number" step="any" min="0" placeholder="ex. 25">
+      </label>
+      <label>Perte atteint (%)
+        <input name="aLoss" type="number" step="any" min="0" placeholder="ex. 10">
+      </label>
+    </div>
+
+    <h3>Prix actuel manuel (optionnel)</h3>
+    <div class="grid">
+      <label class="full">Utilisé seulement si aucun prix n'est chargé par l'API
+        <input name="manual" type="number" step="any" min="0">
+      </label>
+      <label class="full">Notes
+        <input name="notes" maxlength="200">
+      </label>
+    </div>
+
+    <div class="err" id="posErr"></div>
+    <div class="actions">
+      <button type="button" class="link" id="btnDelete" hidden>Supprimer</button>
+      <span style="flex:1"></span>
+      <button type="button" data-close>Annuler</button>
+      <button type="submit" class="primary" id="posSave">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<!-- Settings dialog -->
+<div class="backdrop" id="dlgSet">
+  <form class="modal" id="formSet" autocomplete="off">
+    <h2>Réglages</h2>
+    <h3>Source des prix</h3>
+    <div class="grid">
+      <label class="full">Clé API Alpha Vantage
+        <input name="apiKey" placeholder="Colle ta clé gratuite ici">
+      </label>
+      <label>Appels permis par jour
+        <input name="dailyQuota" type="number" step="1" min="1">
+      </label>
+    </div>
+    <p class="hint">Gratuit : obtiens une clé sur <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener">alphavantage.co</a>. Le plan gratuit est limité à environ 25 appels par jour (1 appel par symbole + 1 pour le taux de change). Si tu as plus de titres que d'appels permis, l'app fait une rotation : elle rafraîchit les prix les plus vieux en premier et garde les autres pour le lendemain.</p>
+
+    <h3>Devise</h3>
+    <div class="grid">
+      <label>Afficher les totaux en
+        <select name="displayCcy"><option value="CAD">$ CA</option><option value="USD">$ US</option></select>
+      </label>
+      <label>Taux USD → CAD (vide = auto)
+        <input name="fxManual" type="number" step="any" min="0">
+      </label>
+    </div>
+
+    <h3>Codage couleur</h3>
+    <div class="grid">
+      <label>Gros gain à partir de (%)
+        <input name="tHigh" type="number" step="any" min="0" required>
+      </label>
+      <label>Grosse perte à partir de (%)
+        <input name="tLoss" type="number" step="any" min="0" required>
+      </label>
+      <label>Zone neutre ± (%)
+        <input name="tNeutral" type="number" step="any" min="0" required>
+      </label>
+    </div>
+
+    <h3>Alerte globale</h3>
+    <div class="grid">
+      <label>Variation du jour supérieure à (%)
+        <input name="dailyMove" type="number" step="any" min="0" placeholder="vide = désactivée">
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="button" data-close>Annuler</button>
+      <button type="submit" class="primary">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<!-- Backup dialog -->
+<div class="backdrop" id="dlgData">
+  <div class="modal">
+    <h2>Sauvegarde</h2>
+    <div class="box" id="fileBox">
+      <b>Sauvegarde automatique dans un fichier</b>
+      <p class="hint" id="fileBoxText"></p>
+      <div class="actions" style="justify-content:flex-start;margin-top:10px" id="fileBoxBtns">
+        <button type="button" class="primary" id="btnFileNew">Créer un fichier de sauvegarde…</button>
+        <button type="button" id="btnFileOpen">Ouvrir un fichier existant…</button>
+        <button type="button" class="link" id="btnFileStop" hidden>Arrêter</button>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:0"><b>Copie manuelle :</b> copie ce texte dans un fichier pour en garder une copie, ou colle une sauvegarde puis clique sur Importer.</p>
+    <textarea id="dataText" spellcheck="false"></textarea>
+    <div class="err" id="dataErr"></div>
+    <div class="actions">
+      <button type="button" id="btnCopy">Copier</button>
+      <button type="button" id="btnCsv">Exporter en CSV</button>
+      <span style="flex:1"></span>
+      <button type="button" data-close>Fermer</button>
+      <button type="button" class="primary" id="btnImport">Importer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="backdrop" id="dlgConfirm">
+  <div class="modal" style="max-width:380px">
+    <h2 id="cfTitle">Confirmer</h2>
+    <p id="cfText" style="margin:0"></p>
+    <div class="actions">
+      <button type="button" data-close>Annuler</button>
+      <button type="button" class="primary" id="cfOk">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ Stockage ============ */
+const KEY = "suivi-portefeuille-v1";
+const DEFAULTS = {
+  positions: [],
+  settings: { apiKey: "", displayCcy: "CAD", fxManual: null, tHigh: 20, tLoss: 10, tNeutral: 0.5, dailyMove: 5, dailyQuota: 25 },
+  quotes: {},          // SYM -> {price, prevClose, changePct, day, at}
+  history: {},         // SYM -> {'YYYY-MM-DD': clôture}
+  chartSel: {},        // positionId -> couleur (0..7)
+  chart: { mode: "gain", stack: "over", period: "3M" },
+  fx: { rate: null, at: 0 },
+  view: { account: "", tag: "", group: true },
+  dismissed: {},       // alertId -> 'YYYY-MM-DD'
+  calls: { day: "", n: 0 },
+  lastRefresh: 0
+};
+let S = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const d = JSON.parse(raw); return merge(d); }
+  }catch(e){}
+  return structuredClone(DEFAULTS);
+}
+function merge(d){
+  const s = structuredClone(DEFAULTS);
+  Object.assign(s, d);
+  s.settings = Object.assign({}, DEFAULTS.settings, d.settings || {});
+  s.positions = Array.isArray(d.positions) ? d.positions : [];
+  s.view = Object.assign({}, DEFAULTS.view, d.view || {});
+  s.history = d.history || {}; s.chartSel = d.chartSel || {};
+  s.chart = Object.assign({}, DEFAULTS.chart, d.chart || {});
+  return s;
+}
+function save(){
+  S.savedAt = Date.now();
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ setStatus("Impossible d'enregistrer dans ce navigateur."); }
+  scheduleFileWrite();
+}
+
+/* ============ Sauvegarde automatique dans un fichier (Chrome / Edge) ============ */
+const FS_OK = typeof window.showSaveFilePicker === "function";
+const FILE = { handle:null, state:"none", lastWrite:0, lastSync:0, err:"", timer:null };   // state: none | ok | needs | error
+function idb(){ return new Promise((res,rej)=>{ const q = indexedDB.open("suivi-portefeuille",1); q.onupgradeneeded = () => q.result.createObjectStore("kv"); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbSet(k,v){ const db = await idb(); return new Promise((res,rej)=>{ const t = db.transaction("kv","readwrite"); v===undefined ? t.objectStore("kv").delete(k) : t.objectStore("kv").put(v,k); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+async function idbGet(k){ const db = await idb(); return new Promise((res,rej)=>{ const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+
+function fileData(){
+  const {apiKey, ...settings} = S.settings;   // la clé API reste dans ce navigateur
+  return { app:"suivi-portefeuille", version:2, savedAt:S.savedAt||Date.now(), positions:S.positions, settings, view:S.view, quotes:S.quotes, fx:S.fx, calls:S.calls, lastRefresh:S.lastRefresh, history:S.history, chartSel:S.chartSel, chart:S.chart };
+}
+function applyFileData(d){
+  const key = S.settings.apiKey;
+  S.positions = d.positions; S.settings = Object.assign({}, DEFAULTS.settings, d.settings||{}, {apiKey:key});
+  S.view = Object.assign({}, DEFAULTS.view, d.view||{}); S.quotes = d.quotes||{}; S.fx = d.fx||S.fx; S.calls = d.calls||S.calls;
+  S.lastRefresh = d.lastRefresh||0; S.savedAt = d.savedAt||Date.now();
+  const H = d.history || {};   // fusionne les historiques (rien ne se perd)
+  for(const k in H) S.history[k] = Object.assign({}, S.history[k]||{}, H[k]);
+  if(d.chartSel) S.chartSel = d.chartSel; if(d.chart) S.chart = Object.assign({}, DEFAULTS.chart, d.chart);
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+}
+function scheduleFileWrite(){
+  if(FILE.state!=="ok") return;
+  clearTimeout(FILE.timer); FILE.timer = setTimeout(writeFile, 400);
+}
+async function writeFile(){
+  if(FILE.state!=="ok") return;
+  try{
+    const w = await FILE.handle.createWritable();
+    await w.write(JSON.stringify(fileData(), null, 2)); await w.close();
+    FILE.lastWrite = Date.now(); FILE.err = "";
+  }catch(e){ FILE.state = "error"; FILE.err = e.message; }
+  renderFileBar();
+}
+async function readFile(){
+  const txt = await (await FILE.handle.getFile()).text();
+  if(!txt.trim()) return null;
+  const d = JSON.parse(txt);
+  if(!Array.isArray(d.positions)) throw new Error("Ce fichier n'est pas une sauvegarde du suivi de portefeuille.");
+  return d;
+}
+// Garde la version la plus récente entre ce navigateur et le fichier.
+async function syncFromFile(){
+  if(FILE.state!=="ok" || busy) return;
+  FILE.lastSync = Date.now();
+  try{
+    const d = await readFile();
+    if(d && (d.savedAt||0) > (S.savedAt||0)){ applyFileData(d); render(); }
+    else if(!d || (S.savedAt||0) > (d.savedAt||0)) await writeFile();
+  }catch(e){ FILE.state = "error"; FILE.err = e.message; }
+  renderFileBar();
+}
+async function linkHandle(h){
+  FILE.handle = h; FILE.state = "ok"; FILE.err = "";
+  try{ await idbSet("fileHandle", h); }catch(e){}
+}
+const pickerOpts = { types:[{ description:"Sauvegarde du portefeuille", accept:{"application/json":[".json"]} }] };
+async function fileNew(){
+  try{
+    const h = await window.showSaveFilePicker({ suggestedName:"portefeuille.json", ...pickerOpts });
+    await linkHandle(h); if(!S.savedAt) S.savedAt = Date.now(); await writeFile(); openData();
+  }catch(e){ if(e.name!=="AbortError") setStatus("Fichier non créé : " + e.message); }
+}
+async function fileOpen(){
+  let h;
+  try{ [h] = await window.showOpenFilePicker({ ...pickerOpts, multiple:false }); }
+  catch(e){ if(e.name!=="AbortError") setStatus(e.message); return; }
+  try{
+    if(await h.requestPermission({mode:"readwrite"}) !== "granted"){ setStatus("Permission d'écriture refusée."); return; }
+    FILE.handle = h;
+    const d = await readFile();
+    if(d && d.positions.length && S.positions.length){
+      $("#dlgData").classList.remove("open");
+      if(!await confirmBox("Utiliser ce fichier", `Le fichier contient ${d.positions.length} position(s). Elles vont remplacer les ${S.positions.length} position(s) de ce navigateur. Continuer ?`)){ FILE.handle = null; return; }
+    }
+    await linkHandle(h);
+    if(d){ applyFileData(d); render(); } else { await writeFile(); }
+    renderFileBar(); openData();
+  }catch(e){ FILE.handle = null; setStatus("Impossible d'utiliser ce fichier : " + e.message); }
+}
+async function fileReconnect(){
+  try{
+    if(await FILE.handle.requestPermission({mode:"readwrite"}) === "granted"){ FILE.state = "ok"; await syncFromFile(); }
+  }catch(e){ FILE.state = "error"; FILE.err = e.message; }
+  renderFileBar();
+}
+async function fileStop(){
+  FILE.handle = null; FILE.state = "none"; try{ await idbSet("fileHandle", undefined); }catch(e){}
+  renderFileBar(); openData();
+}
+function renderFileBar(){
+  const bar = $("#fileBar"), name = FILE.handle?.name ? esc(FILE.handle.name) : "";
+  const t = FILE.lastWrite ? new Date(FILE.lastWrite).toLocaleTimeString("fr-CA",{hour:"2-digit",minute:"2-digit"}) : "";
+  if(!FS_OK){ bar.className = "filebar off"; bar.innerHTML = "Données gardées dans ce navigateur seulement (sauvegarde automatique : Chrome ou Edge)"; }
+  else if(FILE.state==="ok"){ bar.className = "filebar ok"; bar.innerHTML = `✓ Sauvegarde auto dans <b>${name}</b>${t?" · "+t:""}`; }
+  else if(FILE.state==="needs"){ bar.className = "filebar warn"; bar.innerHTML = `Sauvegarde auto en pause pour <b>${name}</b> <button id="btnReconnect">Reconnecter</button>`; }
+  else if(FILE.state==="error"){ bar.className = "filebar warn"; bar.innerHTML = `Erreur de sauvegarde (${esc(FILE.err)}) <button id="btnReconnect">Réessayer</button>`; }
+  else { bar.className = "filebar warn"; bar.innerHTML = `Aucun fichier de sauvegarde <button id="btnFileSetup">Choisir un fichier</button>`; }
+  // boîte dans le dialogue
+  if(!FS_OK){
+    $("#fileBoxText").textContent = "Ton navigateur ne permet pas la sauvegarde automatique dans un fichier. Ouvre l'app dans Chrome ou Edge, ou utilise la copie manuelle ci-dessous.";
+    $("#fileBoxBtns").hidden = true; return;
+  }
+  $("#fileBoxText").innerHTML = FILE.state==="none"
+    ? "Choisis un fichier (idéalement dans OneDrive, Dropbox ou Google Drive). L'app y écrit à chaque changement et le relit à l'ouverture. Sur un autre appareil, utilise « Ouvrir un fichier existant » avec le même fichier."
+    : `Fichier lié : <b>${name}</b>. ${FILE.state==="ok"?"Chaque changement y est enregistré.":"La sauvegarde est en pause : clique sur Reconnecter en haut de la page."} La clé API n'est pas copiée dans le fichier.`;
+  $("#btnFileNew").hidden = FILE.state!=="none"; $("#btnFileOpen").hidden = FILE.state!=="none"; $("#btnFileStop").hidden = FILE.state==="none";
+}
+async function initFile(){
+  if(!FS_OK) return;
+  let h = null;
+  try{ h = await idbGet("fileHandle"); }catch(e){ return; }
+  try{
+    if(h){
+      FILE.handle = h;
+      FILE.state = (await h.queryPermission({mode:"readwrite"})) === "granted" ? "ok" : "needs";
+      if(FILE.state==="ok") await syncFromFile();
+    }
+  }catch(e){ FILE.state = "error"; FILE.err = e.message; }
+}
+
+/* ============ Utilitaires ============ */
+const $ = s => document.querySelector(s);
+const todayISO = () => new Date().toLocaleDateString("en-CA");
+const CAD_SUFFIX = /\.(TO|TRT|V|TRV|NE|CN)$/i;
+const ccyOf = sym => CAD_SUFFIX.test(sym) ? "CAD" : "USD";
+const apiSymbol = sym => sym.toUpperCase().replace(/\.TO$/, ".TRT").replace(/\.V$/, ".TRV");
+const fmtN = (n, d=2) => n==null||!isFinite(n) ? "—" : n.toLocaleString("fr-CA",{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtM = (n, ccy) => n==null||!isFinite(n) ? "—" : n.toLocaleString("fr-CA",{style:"currency",currency:ccy});
+const fmtP = (n, d=1) => n==null||!isFinite(n) ? "—" : (n>0?"+":"") + n.toLocaleString("fr-CA",{minimumFractionDigits:d,maximumFractionDigits:d}) + " %";
+const fmtS = (n, ccy) => n==null||!isFinite(n) ? "—" : (n>0?"+":"") + fmtM(n, ccy);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Math.random().toString(36).slice(2,10);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function daysBetween(iso){ const a = new Date(iso+"T00:00:00"), b = new Date(todayISO()+"T00:00:00"); return Math.max(0, Math.round((b-a)/86400000)); }
+function setStatus(t){ $("#status").textContent = t || ""; }
+
+function fxRate(){ // USD -> CAD
+  const m = parseFloat(S.settings.fxManual);
+  if(m > 0) return m;
+  return S.fx.rate || null;
+}
+function convert(amount, from){
+  const to = S.settings.displayCcy;
+  if(amount==null || from===to) return amount;
+  const r = fxRate(); if(!r) return null;
+  return from==="USD" ? amount*r : amount/r;
+}
+
+/* ============ Couleurs ============ */
+function tier(pct){
+  if(pct==null || !isFinite(pct)) return "n";
+  const {tHigh, tLoss, tNeutral} = S.settings;
+  if(Math.abs(pct) <= tNeutral) return "n";
+  if(pct >= tHigh) return "g2";
+  if(pct > 0) return "g1";
+  if(pct <= -Math.abs(tLoss)) return "r";
+  return "o";
+}
+function renderLegend(){
+  const f = n => n.toLocaleString("fr-CA");
+  const {tHigh,tLoss,tNeutral} = Object.fromEntries(Object.entries(S.settings).map(([k,v])=>[k, typeof v==="number"?f(v):v]));
+  const items = [["g2",`≥ +${tHigh} %`],["g1",`+${tNeutral} à +${tHigh} %`],["n",`± ${tNeutral} %`],["o",`−${tNeutral} à −${tLoss} %`],["r",`≤ −${tLoss} %`]];
+  $("#legend").innerHTML = items.map(([t,l]) => `<span><i style="background:var(--${t})"></i>${l}</span>`).join("");
+}
+
+/* ============ Calculs ============ */
+function compute(list = S.positions){
+  const rows = list.map(p => {
+    const ccy = ccyOf(p.symbol);
+    const q = S.quotes[p.symbol.toUpperCase()];
+    const live = q && q.price > 0;
+    const price = live ? q.price : (p.manual > 0 ? p.manual : null);
+    const cost = p.qty * p.price;
+    const value = price!=null ? p.qty * price : null;
+    const gain = value!=null ? value - cost : null;
+    const pct = gain!=null && cost>0 ? gain/cost*100 : null;
+    const days = daysBetween(p.date);
+    const ann = pct!=null && days >= 90 ? (Math.pow(1+pct/100, 365/days)-1)*100 : null;
+    // La variation du jour n'a de sens que si le prix a été chargé aujourd'hui.
+    const fresh = live && new Date(q.at).toLocaleDateString("en-CA") === todayISO();
+    const ageDays = live ? Math.floor((Date.now()-q.at)/86400000) : null;
+    const dayPct = fresh ? q.changePct : null;
+    const dayAbs = fresh && q.prevClose ? p.qty*(q.price-q.prevClose) : null;
+    return { p, ccy, price, live, ageDays, cost, value, gain, pct, days, ann, dayPct, dayAbs,
+      valueD: convert(value, ccy), costD: convert(cost, ccy), gainD: convert(gain, ccy), dayAbsD: convert(dayAbs, ccy) };
+  });
+  const priced = rows.filter(r => r.valueD!=null && r.costD!=null);
+  const tot = {
+    value: priced.reduce((a,r)=>a+r.valueD,0),
+    cost: priced.reduce((a,r)=>a+r.costD,0),
+    day: rows.filter(r=>r.dayAbsD!=null).reduce((a,r)=>a+r.dayAbsD,0),
+    missing: rows.length - priced.length
+  };
+  tot.gain = tot.value - tot.cost;
+  tot.pct = tot.cost>0 ? tot.gain/tot.cost*100 : null;
+  const prevVal = tot.value - tot.day;
+  tot.dayPct = prevVal>0 && rows.some(r=>r.dayAbsD!=null) ? tot.day/prevVal*100 : null;
+  rows.forEach(r => r.weight = r.valueD!=null && tot.value>0 ? r.valueD/tot.value*100 : null);
+  const ranked = rows.filter(r=>r.pct!=null).sort((a,b)=>b.pct-a.pct);
+  tot.best = ranked[0]; tot.worst = ranked[ranked.length-1];
+  return {rows, tot};
+}
+
+/* ============ Alertes ============ */
+function alertsFor(rows){
+  const out = [];
+  const dm = parseFloat(S.settings.dailyMove);
+  const seenDaily = new Set();
+  for(const r of rows){
+    const p = r.p, sym = p.symbol.toUpperCase();
+    if(r.price!=null){
+      if(p.aAbove>0 && r.price >= p.aAbove) out.push({id:`${p.id}:above`, cls:"up", pos:p.id, text:`${sym} est à ${fmtM(r.price,r.ccy)}, au-dessus de ton seuil de ${fmtM(p.aAbove,r.ccy)}.`});
+      if(p.aBelow>0 && r.price <= p.aBelow) out.push({id:`${p.id}:below`, cls:"down", pos:p.id, text:`${sym} est à ${fmtM(r.price,r.ccy)}, sous ton seuil de ${fmtM(p.aBelow,r.ccy)}.`});
+    }
+    if(r.pct!=null){
+      if(p.aGain>0 && r.pct >= p.aGain) out.push({id:`${p.id}:gain`, cls:"up", pos:p.id, text:`${sym} (achat du ${p.date}) a atteint ${fmtP(r.pct)} de gain. Ton objectif était +${p.aGain} %.`});
+      if(p.aLoss>0 && r.pct <= -Math.abs(p.aLoss)) out.push({id:`${p.id}:loss`, cls:"down", pos:p.id, text:`${sym} (achat du ${p.date}) est à ${fmtP(r.pct)}. Ton seuil de perte était −${Math.abs(p.aLoss)} %.`});
+    }
+    if(dm>0 && r.dayPct!=null && Math.abs(r.dayPct) >= dm && !seenDaily.has(sym)){
+      seenDaily.add(sym);
+      out.push({id:`day:${sym}:${S.quotes[sym]?.day||""}`, cls:r.dayPct>0?"up":"down", pos:p.id, text:`${sym} bouge de ${fmtP(r.dayPct)} aujourd'hui.`});
+    }
+  }
+  const t = todayISO();
+  return out.filter(a => S.dismissed[a.id] !== t);
+}
+function renderAlerts(list){
+  $("#alerts").innerHTML = list.map(a => `<div class="alert ${a.cls}"><span>🔔 ${esc(a.text)}</span><button class="link" data-dismiss="${esc(a.id)}">Ignorer aujourd'hui</button></div>`).join("");
+}
+
+/* ============ Rendu ============ */
+let sortKey = "symbol", sortDir = 1;
+const COLS = [
+  ["symbol","Symbole"],["qty","Qté"],["date","Achat"],["days","Jours"],["buy","Prix payé"],["price","Prix actuel"],
+  ["dayPct","Jour"],["valueD","Valeur"],["gainD","Gain / perte"],["pct","Rendement"],["ann","Annualisé"],["weight","Poids"]
+];
+function sortVal(r,k){
+  switch(k){
+    case "symbol": return r.p.symbol.toUpperCase();
+    case "qty": return r.p.qty; case "date": return r.p.date; case "buy": return r.p.price;
+    default: return r[k] ?? -Infinity;
+  }
+}
+const KNOWN = ["REER","CELI","CELIAPP","FERR","REEE","CRI","NR"];
+const NO_ACCT = "Sans compte";
+const acctOf = p => (p.account||"").trim() || NO_ACCT;
+function acctOrder(a,b){
+  const i = x => x===NO_ACCT ? 999 : (KNOWN.indexOf(x)<0 ? 100 : KNOWN.indexOf(x));
+  return i(a)-i(b) || a.localeCompare(b,"fr");
+}
+function renderFilters(){
+  const V = S.view;
+  const accts = [...new Set(S.positions.map(acctOf))].sort(acctOrder);
+  const tags = [...new Set(S.positions.flatMap(p=>p.tags||[]))].sort((a,b)=>a.localeCompare(b,"fr"));
+  if(V.account && !accts.includes(V.account)) V.account = "";
+  if(V.tag && !tags.includes(V.tag)) V.tag = "";
+  if(accts.length<2 && !tags.length && !(accts.length===1 && accts[0]!==NO_ACCT)){ $("#filters").innerHTML = ""; return; }
+  let h = `<span class="lbl">Compte</span><button class="chip ${!V.account?"on":""}" data-acct="">Tous</button>` +
+    accts.map(a=>`<button class="chip ${V.account===a?"on":""}" data-acct="${esc(a)}">${esc(a)}</button>`).join("");
+  if(tags.length) h += `<span class="sep"></span><span class="lbl">Étiquette</span>` +
+    tags.map(t=>`<button class="chip ${V.tag===t?"on":""}" data-tag="${esc(t)}">#${esc(t)}</button>`).join("");
+  if(accts.length>1 && !V.account) h += `<span class="sep"></span><button class="chip ${V.group?"on":""}" data-group>Regrouper par compte</button>`;
+  $("#filters").innerHTML = h;
+}
+function render(){
+  const D = S.settings.displayCcy;
+  renderFilters();
+  const V = S.view;
+  const al = alertsFor(compute(S.positions).rows);   // alertes sur tout le portefeuille, peu importe le filtre
+  const shown = S.positions.filter(p => (!V.account || acctOf(p)===V.account) && (!V.tag || (p.tags||[]).includes(V.tag)));
+  const {rows, tot} = compute(shown);
+  const alertPos = new Set(al.map(a=>a.pos));
+  renderAlerts(al);
+
+  // tuiles
+  const tc = tier(tot.pct);
+  const fxNote = rows.some(r=>r.ccy!==D) && !fxRate() ? `<div class="s t-o">Taux de change manquant</div>` : "";
+  $("#tiles").innerHTML = rows.length ? `
+    <div class="tile"><div class="k">Valeur totale (${D})</div><div class="v">${fmtM(tot.value,D)}</div>${tot.missing?`<div class="s muted">${tot.missing} position(s) sans prix</div>`:fxNote}</div>
+    <div class="tile"><div class="k">Coût total</div><div class="v">${fmtM(tot.cost,D)}</div></div>
+    <div class="tile"><div class="k">Gain / perte</div><div class="v t-${tc}">${fmtS(tot.gain,D)}</div><div class="s"><span class="pill t-${tc}">${fmtP(tot.pct)}</span></div></div>
+    <div class="tile"><div class="k">Aujourd'hui</div><div class="v t-${tier(tot.dayPct)}">${fmtS(tot.dayPct==null?null:tot.day,D)}</div><div class="s t-${tier(tot.dayPct)}">${fmtP(tot.dayPct,2)}</div></div>
+    <div class="tile"><div class="k">Meilleure position</div><div class="v">${tot.best?esc(tot.best.p.symbol.toUpperCase()):"—"}</div><div class="s t-${tier(tot.best?.pct)}">${fmtP(tot.best?.pct)}</div></div>
+    <div class="tile"><div class="k">Pire position</div><div class="v">${tot.worst?esc(tot.worst.p.symbol.toUpperCase()):"—"}</div><div class="s t-${tier(tot.worst?.pct)}">${fmtP(tot.worst?.pct)}</div></div>
+  ` : "";
+
+  // en-tête
+  $("#thead").innerHTML = COLS.map(([k,l]) => {
+    const lab = (k==="valueD"||k==="gainD") ? `${l} (${D})` : l;
+    return `<th data-sort="${k}">${lab}${sortKey===k?(sortDir>0?" ▲":" ▼"):""}</th>`;
+  }).join("") + "<th></th>";
+
+  rows.sort((a,b)=>{ const x=sortVal(a,sortKey), y=sortVal(b,sortKey); return (x>y?1:x<y?-1:0)*sortDir; });
+  $("#empty").hidden = rows.length>0;
+  $("#empty").innerHTML = S.positions.length ? "Aucune position ne correspond à ce filtre." : "Aucune position pour l'instant.<br>Clique sur <b>+ Ajouter une position</b> pour commencer.";
+  const grouping = V.group && !V.account && new Set(rows.map(r=>acctOf(r.p))).size > 1;
+  const rowHtml = r => {
+    const t = tier(r.pct), p = r.p;
+    const meta = [!grouping ? `<span class="acct">${esc(acctOf(p))}</span>` : "", ...(p.tags||[]).map(x=>"#"+esc(x)), p.notes?esc(p.notes):""].filter(Boolean).join(" ");
+    return `<tr class="b-${t}">
+      <td><input type="checkbox" class="sel" data-sel="${p.id}" ${p.id in S.chartSel?`checked style="accent-color:var(--s${S.chartSel[p.id]+1})"`:""} title="Afficher dans le graphique" aria-label="Afficher ${esc(p.symbol)} dans le graphique"><span class="sym">${esc(p.symbol.toUpperCase())}</span><span class="ccy">${r.ccy}</span>${alertPos.has(p.id)?'<span class="bell" title="Alerte active">🔔</span>':""}${meta?`<div class="meta">${meta}</div>`:""}</td>
+      <td>${fmtN(p.qty, p.qty%1?4:0)}</td>
+      <td>${esc(p.date)}</td>
+      <td class="muted">${r.days}</td>
+      <td>${fmtM(p.price,r.ccy)}${p.autoPrice?'<span class="manual" title="Clôture de la date d\'achat">≈</span>':""}</td>
+      <td>${fmtM(r.price,r.ccy)}${r.price!=null&&!r.live?'<span class="manual" title="Prix entré manuellement">manuel</span>':""}${r.ageDays>=1?`<div class="manual" title="Prix pas encore rafraîchi (rotation du quota)">il y a ${r.ageDays} j</div>`:""}</td>
+      <td class="t-${tier(r.dayPct)}">${fmtP(r.dayPct,2)}</td>
+      <td>${fmtM(r.valueD,D)}</td>
+      <td class="t-${t}">${fmtS(r.gainD,D)}</td>
+      <td><span class="pill t-${t}">${fmtP(r.pct)}</span></td>
+      <td class="t-${tier(r.ann)}">${r.ann==null?'<span class="muted" title="Calculé après 90 jours de détention">—</span>':fmtP(r.ann)}</td>
+      <td class="muted">${r.weight==null?"—":fmtN(r.weight,1)+" %"}</td>
+      <td><button class="link" data-edit="${p.id}" title="Modifier" aria-label="Modifier ${esc(p.symbol)}">✎</button></td>
+    </tr>`;
+  };
+  if(grouping){
+    const groups = {};
+    rows.forEach(r => (groups[acctOf(r.p)] ||= []).push(r));
+    $("#tbody").innerHTML = Object.keys(groups).sort(acctOrder).map(a => {
+      const g = groups[a], pr = g.filter(r=>r.valueD!=null&&r.costD!=null);
+      const v = pr.reduce((x,r)=>x+r.valueD,0), c = pr.reduce((x,r)=>x+r.costD,0), gn = v-c, pc = c>0?gn/c*100:null, tg = tier(pc);
+      return `<tr class="grp"><td colspan="7">${esc(a)} <span class="muted" style="font-weight:400">· ${g.length} position${g.length>1?"s":""}</span></td>
+        <td>${fmtM(v,D)}</td><td class="t-${tg}">${fmtS(gn,D)}</td><td><span class="pill t-${tg}">${fmtP(pc)}</span></td><td></td>
+        <td class="muted">${tot.value>0?fmtN(v/tot.value*100,1)+" %":"—"}</td><td></td></tr>` + g.map(rowHtml).join("");
+    }).join("");
+  } else {
+    $("#tbody").innerHTML = rows.map(rowHtml).join("");
+  }
+
+  $("#tfoot").innerHTML = rows.length ? `<tr>
+    <td>${V.account||V.tag ? "Total (filtré)" : "Total"}</td><td></td><td></td><td></td><td></td><td></td>
+    <td class="t-${tier(tot.dayPct)}">${fmtP(tot.dayPct,2)}</td>
+    <td>${fmtM(tot.value,D)}</td>
+    <td class="t-${tc}">${fmtS(tot.gain,D)}</td>
+    <td><span class="pill t-${tc}">${fmtP(tot.pct)}</span></td>
+    <td></td><td class="muted">100 %</td><td></td></tr>` : "";
+
+  renderLegend();
+  renderChart();
+  $("#lastUpdate").textContent = S.lastRefresh ? "Prix mis à jour le " + new Date(S.lastRefresh).toLocaleString("fr-CA",{dateStyle:"medium",timeStyle:"short"}) + (fxRate()?` · 1 $ US = ${fmtN(fxRate(),4)} $ CA`:"") : "Aucun prix chargé";
+  const n = S.calls.day===todayISO() ? S.calls.n : 0;
+  $("#quota").textContent = S.settings.apiKey ? `Appels API aujourd'hui : ${n} / ${S.settings.dailyQuota||25}` : "Aucune clé API : ajoute-la dans Réglages pour les prix automatiques";
+}
+
+/* ============ API Alpha Vantage ============ */
+class QuotaError extends Error{}
+let lastCall = 0;
+async function av(params){
+  const key = S.settings.apiKey.trim();
+  if(!key) throw new Error("Aucune clé API (voir Réglages).");
+  for(let attempt=0; attempt<2; attempt++){
+    const wait = 1300 - (Date.now()-lastCall); if(wait>0) await sleep(wait);
+    lastCall = Date.now();
+    const url = "https://www.alphavantage.co/query?" + new URLSearchParams({...params, apikey:key});
+    let data;
+    try{ const res = await fetch(url); data = await res.json(); }
+    catch(e){ throw new Error("Connexion impossible à Alpha Vantage."); }
+    const t = todayISO(); if(S.calls.day!==t) S.calls = {day:t, n:0}; S.calls.n++;
+    const info = data.Information || data.Note;
+    if(info){
+      if(/day|daily|jour/i.test(info) || attempt===1) throw new QuotaError("Quota d'Alpha Vantage atteint. Réessaie plus tard (ou demain pour le quota quotidien).");
+      setStatus("Limite par minute atteinte, pause de 15 s…"); await sleep(15000); continue;
+    }
+    if(data["Error Message"]) throw new Error("Symbole introuvable : " + params.symbol);
+    return data;
+  }
+}
+// Un seul appel donne le dernier cours ET les ~100 dernières clôtures, qu'on garde dans l'historique.
+async function fetchSeries(sym){
+  const d = await av({function:"TIME_SERIES_DAILY", symbol:apiSymbol(sym), outputsize:"compact"});
+  const ts = d["Time Series (Daily)"];
+  if(!ts) throw new Error("Symbole introuvable : " + sym);
+  const h = S.history[sym] ||= {};
+  for(const [k,v] of Object.entries(ts)) h[k] = +v["4. close"];
+  return Object.keys(ts).sort().map(k => [k, +ts[k]["4. close"]]);
+}
+async function fetchQuote(sym){
+  const ser = await fetchSeries(sym);
+  const [day, price] = ser[ser.length-1], prevClose = ser.length>1 ? ser[ser.length-2][1] : null;
+  return { price, prevClose, changePct: prevClose ? (price/prevClose-1)*100 : null, day, at:Date.now() };
+}
+async function fetchFx(){
+  const d = await av({function:"CURRENCY_EXCHANGE_RATE", from_currency:"USD", to_currency:"CAD"});
+  const r = +d?.["Realtime Currency Exchange Rate"]?.["5. Exchange Rate"];
+  if(!(r>0)) throw new Error("Taux de change indisponible.");
+  return r;
+}
+async function fetchClose(sym, iso){
+  const ser = await fetchSeries(sym);
+  if(iso < ser[0][0]) throw new Error(`L'historique gratuit commence le ${ser[0][0]}. Entre le prix payé manuellement.`);
+  const hit = ser.filter(x => x[0] <= iso).pop();
+  if(!hit) throw new Error("Aucune clôture trouvée à cette date.");
+  // Profite de l'appel pour mettre aussi le cours à jour.
+  const last = ser[ser.length-1], prev = ser[ser.length-2];
+  S.quotes[sym.toUpperCase()] = { price:last[1], prevClose:prev?prev[1]:null, changePct:prev?(last[1]/prev[1]-1)*100:null, day:last[0], at:Date.now() };
+  return hit[1];
+}
+
+function callsLeft(){
+  const used = S.calls.day===todayISO() ? S.calls.n : 0;
+  return Math.max(0, (S.settings.dailyQuota||25) - used);
+}
+let busy = false;
+async function refresh(force){
+  if(busy) return;
+  if(!S.settings.apiKey.trim()){ openSettings(); setStatus("Ajoute ta clé API Alpha Vantage pour charger les prix."); return; }
+  const syms = [...new Set(S.positions.map(p=>p.symbol.toUpperCase()))];
+  const stale = 10*60*1000;
+  // Rotation : les prix les plus vieux d'abord, jusqu'au quota restant du jour.
+  const age = s => S.quotes[s]?.at || 0;
+  const candidates = syms.filter(s => force || !S.quotes[s] || Date.now()-age(s) > stale).sort((a,b) => age(a)-age(b));
+  const needFx = !(parseFloat(S.settings.fxManual)>0) && S.positions.some(p=>ccyOf(p.symbol)!==S.settings.displayCcy) && (!S.fx.rate || Date.now()-S.fx.at > 12*3600*1000);
+  let budget = callsLeft() - (needFx ? 1 : 0);
+  const todo = candidates.slice(0, Math.max(0, budget));
+  const postponed = candidates.length - todo.length;
+  if(!todo.length && !needFx){
+    setStatus(candidates.length ? `Quota du jour utilisé. ${candidates.length} titre(s) seront mis à jour demain.` : "Les prix sont déjà à jour (moins de 10 minutes).");
+    return;
+  }
+  busy = true; $("#btnRefresh").disabled = true;
+  const errs = []; let i = 0;
+  try{
+    if(needFx){ setStatus("Taux de change…"); try{ S.fx = {rate: await fetchFx(), at: Date.now()}; }catch(e){ if(e instanceof QuotaError) throw e; errs.push(e.message); } }
+    for(const s of todo){
+      setStatus(`Mise à jour ${++i} / ${todo.length} : ${s}…`);
+      try{ S.quotes[s] = await fetchQuote(s); save(); render(); }
+      catch(e){ if(e instanceof QuotaError) throw e; errs.push(e.message); }
+    }
+    S.lastRefresh = Date.now();
+    const msg = postponed ? `${todo.length} titre(s) mis à jour. ${postponed} autre(s) le seront à la prochaine mise à jour (quota du jour atteint).` : "Prix à jour.";
+    setStatus(errs.length ? errs.join(" · ") + " · " + msg : msg);
+  }catch(e){
+    setStatus(e.message);
+  }finally{
+    busy = false; $("#btnRefresh").disabled = false; save(); render();
+  }
+}
+
+/* ============ Graphiques ============ */
+const MAX_SERIES = 8;
+const PERIOD_DAYS = { "1M":31, "3M":92, "6M":183, "1A":366, "ALL":null };
+const dms = iso => Date.parse(iso + "T12:00:00");
+const isoOf = ms => new Date(ms).toLocaleDateString("en-CA");
+function seriesColor(slot){ return getComputedStyle(document.body).getPropertyValue("--s"+(slot+1)).trim(); }
+function posLabel(p, all){
+  const sym = p.symbol.toUpperCase();
+  const dup = all.filter(x => x.symbol.toUpperCase()===sym).length > 1;
+  return dup ? `${sym} · ${acctOf(p)}${all.filter(x=>x.symbol.toUpperCase()===sym && acctOf(x)===acctOf(p)).length>1?" · "+p.date:""}` : sym;
+}
+// Points [date ISO, valeur] d'une position sur la période, selon le mode.
+function positionPoints(p, mode, startIso){
+  const h = S.history[p.symbol.toUpperCase()]; if(!h) return null;
+  const from = p.date > startIso ? p.date : startIso;
+  const dates = Object.keys(h).filter(d => d >= from).sort();
+  if(!dates.length) return null;
+  const ccy = ccyOf(p.symbol);
+  let ref = p.price, pts = [];
+  const hFirst = Object.keys(h).sort()[0];
+  if(p.date >= startIso){ if(p.date >= hFirst) pts.push([p.date, 0]); }   // la courbe part de 0 le jour de l'achat (si l'historique le couvre)
+  else if(mode==="perf") ref = h[dates[0]];               // sinon, base = 1re clôture de la période
+  for(const d of dates){
+    if(d===p.date && pts.length && pts[0][0]===d) { pts[0][1] = mode==="perf" ? (h[d]/ref-1)*100 : convert(p.qty*(h[d]-p.price), ccy); continue; }
+    pts.push([d, mode==="perf" ? (h[d]/ref-1)*100 : convert(p.qty*(h[d]-p.price), ccy)]);
+  }
+  return pts.filter(x => x[1]!=null && isFinite(x[1]));
+}
+function sumSeries(list){
+  const dates = [...new Set(list.flatMap(s=>s.map(x=>x[0])))].sort();
+  return dates.map(d => [d, list.reduce((a,s) => {
+    let v = 0; for(const [k,x] of s){ if(k<=d) v = x; else break; } return a+v;
+  },0)]);
+}
+function buildChart(){
+  const C = S.chart, V = S.view, D = S.settings.displayCcy;
+  const sel = S.positions.filter(p => p.id in S.chartSel);
+  const allHist = Object.values(S.history).flatMap(h => Object.keys(h));
+  const today = todayISO();
+  const startIso = PERIOD_DAYS[C.period] ? isoOf(Date.now() - PERIOD_DAYS[C.period]*86400000) : "0000-00-00";
+  const fmt = C.mode==="perf" ? v=>fmtP(v) : v=>fmtS(v,D);
+  const out = { series:[], fmt, note:"", empty:"" };
+  if(!allHist.length){ out.empty = "Pas encore d'historique. Il se remplit à chaque mise à jour des prix (jusqu'à 100 jours d'un coup par titre)."; return out; }
+  let missing = 0;
+  if(!sel.length){
+    if(C.mode==="perf"){ out.empty = "Coche une ou plusieurs positions dans le tableau (case à gauche du symbole) pour comparer leur performance."; return out; }
+    const shown = S.positions.filter(p => (!V.account || acctOf(p)===V.account) && (!V.tag || (p.tags||[]).includes(V.tag)));
+    const parts = shown.map(p => positionPoints(p,"gain",startIso)).filter(x => { if(!x) missing++; return x && x.length; });
+    if(!parts.length){ out.empty = "Aucun historique pour ces positions sur cette période."; return out; }
+    const what = V.account || V.tag ? [V.account, V.tag && "#"+V.tag].filter(Boolean).join(" · ") : "tout le portefeuille";
+    out.series.push({ key:"total", label:"Total", slot:0, pts:sumSeries(parts) });
+    out.note = `Gain total, ${what}. Coche des positions dans le tableau pour les afficher séparément.`;
+  } else if(C.mode==="gain" && C.stack==="sum" && sel.length>1){
+    const parts = sel.map(p => positionPoints(p,"gain",startIso)).filter(x => { if(!x) missing++; return x && x.length; });
+    out.series.push({ key:"sum", label:"Total de la sélection", slot:0, pts:sumSeries(parts) });
+    out.note = `Gain total de ${sel.length} positions sélectionnées.`;
+  } else {
+    for(const p of sel){
+      const pts = positionPoints(p, C.mode, startIso);
+      if(!pts || !pts.length){ missing++; continue; }
+      out.series.push({ key:p.id, label:posLabel(p, S.positions), slot:S.chartSel[p.id], pts });
+    }
+    out.note = C.mode==="perf" ? "Variation en % depuis le début de la période (ou depuis le prix payé, si l'achat est plus récent)." : `Gain ou perte en ${D} par position.`;
+    if(!out.series.length){ out.empty = "Aucun historique pour cette sélection sur cette période."; return out; }
+  }
+  const first = allHist.sort()[0];
+  if(C.period==="ALL" || startIso < first) out.note += ` Historique disponible depuis le ${first}.`;
+  if(missing) out.note += ` ${missing} position(s) sans historique pour l'instant.`;
+  if(C.mode==="gain" && S.positions.some(p=>ccyOf(p.symbol)!==D)) out.note += " Montants convertis au taux de change actuel.";
+  return out;
+}
+function niceTicks(min, max, n=5){
+  if(min===max){ min -= 1; max += 1; }
+  const raw = (max-min)/n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1,2,2.5,5,10].map(m=>m*mag).find(s => s >= raw);
+  const lo = Math.floor(min/step)*step, hi = Math.ceil(max/step)*step, t = [];
+  for(let v=lo; v<=hi+step/2; v+=step) t.push(+v.toFixed(10));
+  return t;
+}
+function axisFmt(v, mode){
+  if(mode==="perf") return (v>0?"+":"") + v.toLocaleString("fr-CA",{maximumFractionDigits:1}) + " %";
+  const a = Math.abs(v), s = v<0?"−":v>0?"+":"";
+  return s + (a>=1e6 ? (a/1e6).toLocaleString("fr-CA",{maximumFractionDigits:1})+" M" : a>=1e4 ? (a/1e3).toLocaleString("fr-CA",{maximumFractionDigits:0})+" k" : a.toLocaleString("fr-CA",{maximumFractionDigits:0})) + " $";
+}
+let CH = null;   // état du graphique courant pour le survol
+function renderChart(){
+  const C = S.chart;
+  document.querySelectorAll("#cMode button").forEach(b => b.classList.toggle("on", b.dataset.mode===C.mode));
+  document.querySelectorAll("#cStack button").forEach(b => b.classList.toggle("on", b.dataset.stack===C.stack));
+  document.querySelectorAll("#cPeriod button").forEach(b => b.classList.toggle("on", b.dataset.period===C.period));
+  const nSel = Object.keys(S.chartSel).length;
+  $("#cStack").hidden = !(C.mode==="gain" && nSel>1);
+  $("#cClear").style.visibility = nSel ? "visible" : "hidden";
+  $("#chartCard").hidden = !S.positions.length;
+  const B = buildChart(), svg = $("#chartSvg"), tip = $("#chartTip");
+  tip.style.display = "none";
+  $("#chartSub").textContent = B.empty ? "" : B.note;
+  if(B.empty){ svg.innerHTML = ""; svg.setAttribute("height", 0); $("#chartLegend").innerHTML = `<div class="chart-empty">${esc(B.empty)}</div>`; $("#chartTable").innerHTML = ""; CH = null; return; }
+  const ser = B.series;
+  // légende (toujours présente pour 2 séries ou plus)
+  $("#chartLegend").innerHTML = ser.length>1 ? ser.map(s => `<span><i class="key" style="border-color:${seriesColor(s.slot)}"></i>${esc(s.label)}</span>`).join("") : "";
+  // géométrie
+  const W = $("#chartWrap").clientWidth || 800, H = 300;
+  const direct = ser.length <= 4;
+  const M = { l:64, r: direct ? 96 : 16, t:12, b:26 };
+  const all = ser.flatMap(s => s.pts);
+  const x0 = Math.min(...all.map(p=>dms(p[0]))), x1 = Math.max(...all.map(p=>dms(p[0])), x0+86400000);
+  const ys = all.map(p=>p[1]);
+  const yt = niceTicks(Math.min(0,...ys), Math.max(0,...ys));
+  const y0 = yt[0], y1 = yt[yt.length-1];
+  const X = ms => M.l + (ms-x0)/(x1-x0)*(W-M.l-M.r);
+  const Y = v => M.t + (1-(v-y0)/(y1-y0))*(H-M.t-M.b);
+  let g = "";
+  for(const v of yt) g += `<line x1="${M.l}" x2="${W-M.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v===0?"var(--axis)":"var(--grid)"}" stroke-width="1"/><text x="${M.l-8}" y="${Y(v)+4}" text-anchor="end">${axisFmt(v,C.mode)}</text>`;
+  // graduations de dates
+  const span = (x1-x0)/86400000, ticks = [];
+  const d = new Date(x0); d.setHours(12,0,0,0);
+  if(span > 50){ d.setDate(1); d.setMonth(d.getMonth()+1); const stepM = span>400?3:span>200?2:1; while(d.getTime()<=x1){ ticks.push(d.getTime()); d.setMonth(d.getMonth()+stepM); } }
+  else { const stepD = span>20?7:span>8?2:1; while(d.getTime()<=x1){ ticks.push(d.getTime()); d.setDate(d.getDate()+stepD); } }
+  for(const t of ticks) g += `<text x="${X(t)}" y="${H-6}" text-anchor="middle">${new Date(t).toLocaleDateString("fr-CA", span>50?{month:"short", year: span>300?"2-digit":undefined}:{day:"numeric",month:"short"})}</text>`;
+  // lignes
+  for(const s of ser){
+    const path = s.pts.map((p,i) => (i?"L":"M") + X(dms(p[0])).toFixed(1) + " " + Y(p[1]).toFixed(1)).join(" ");
+    g += `<path d="${path}" fill="none" stroke="${seriesColor(s.slot)}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(s.pts.length===1){ const p=s.pts[0]; g += `<circle cx="${X(dms(p[0]))}" cy="${Y(p[1])}" r="4" fill="${seriesColor(s.slot)}"/>`; }
+  }
+  // étiquettes directes en bout de ligne (≤ 4 séries), écartées pour ne pas se chevaucher
+  if(direct){
+    const labs = ser.map(s => { const p = s.pts[s.pts.length-1]; return { s, x:X(dms(p[0])), y:Y(p[1]), v:p[1] }; }).sort((a,b)=>a.y-b.y);
+    for(let i=1;i<labs.length;i++) if(labs[i].y - labs[i-1].y < 32) labs[i].y = labs[i-1].y + 32;
+    for(const l of labs){
+      g += `<text class="dl" x="${l.x+8}" y="${l.y-2}">${esc(l.s.label)}</text><text x="${l.x+8}" y="${l.y+12}">${esc(B.fmt(l.v))}</text>`;
+    }
+  }
+  g += `<line id="xhair" x1="0" x2="0" y1="${M.t}" y2="${H-M.b}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/><g id="xdots"></g>`;
+  g += `<rect id="hit" x="${M.l}" y="0" width="${Math.max(0,W-M.l-M.r)}" height="${H}" fill="transparent"/>`;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H); svg.innerHTML = g;
+  const dates = [...new Set(all.map(p=>p[0]))].sort();
+  CH = { ser, dates, X, Y, M, W, H, fmt:B.fmt };
+  // vue tableau
+  $("#chartTable").innerHTML = `<table style="min-width:0;margin-top:8px"><thead><tr><th>Série</th><th>Début</th><th>Fin</th><th>Min</th><th>Max</th></tr></thead><tbody>` +
+    ser.map(s => { const v = s.pts.map(p=>p[1]); return `<tr><td>${esc(s.label)}</td><td>${esc(B.fmt(v[0]))} <span class="muted">${s.pts[0][0]}</span></td><td>${esc(B.fmt(v[v.length-1]))} <span class="muted">${s.pts[s.pts.length-1][0]}</span></td><td>${esc(B.fmt(Math.min(...v)))}</td><td>${esc(B.fmt(Math.max(...v)))}</td></tr>`; }).join("") + "</tbody></table>";
+}
+function valueAt(pts, d){ let v = null; for(const [k,x] of pts){ if(k<=d) v = x; else break; } return v; }
+function chartHover(e){
+  if(!CH) return;
+  const svg = $("#chartSvg"), rect = svg.getBoundingClientRect();
+  const px = (e.clientX - rect.left) * (CH.W / rect.width);
+  let best = CH.dates[0], bd = Infinity;
+  for(const d of CH.dates){ const dx = Math.abs(CH.X(dms(d)) - px); if(dx < bd){ bd = dx; best = d; } }
+  const x = CH.X(dms(best));
+  const xh = $("#xhair"); xh.setAttribute("x1", x); xh.setAttribute("x2", x); xh.setAttribute("visibility","visible");
+  const rows = CH.ser.map(s => ({ s, v: s.pts[0][0] <= best ? valueAt(s.pts, best) : null })).filter(r => r.v!=null).sort((a,b)=>b.v-a.v);
+  $("#xdots").innerHTML = rows.map(r => `<circle cx="${x}" cy="${CH.Y(r.v)}" r="4" fill="${seriesColor(r.s.slot)}" stroke="var(--card)" stroke-width="2"/>`).join("");
+  const tip = $("#chartTip"); tip.replaceChildren();
+  const hd = document.createElement("div"); hd.className = "d"; hd.textContent = new Date(dms(best)).toLocaleDateString("fr-CA",{weekday:"short", day:"numeric", month:"long", year:"numeric"}); tip.append(hd);
+  for(const r of rows){
+    const row = document.createElement("div"); row.className = "row";
+    const k = document.createElement("i"); k.className = "key"; k.style.borderColor = seriesColor(r.s.slot);
+    const b = document.createElement("b"); b.textContent = CH.fmt(r.v);
+    const l = document.createElement("span"); l.textContent = r.s.label;
+    row.append(k, b, l); tip.append(row);
+  }
+  tip.style.display = "block";
+  const wrapW = $("#chartWrap").clientWidth, sx = x * (rect.width / CH.W);
+  tip.style.left = Math.min(Math.max(0, sx + 14 + tip.offsetWidth > wrapW ? sx - tip.offsetWidth - 14 : sx + 14), wrapW - tip.offsetWidth) + "px";
+  tip.style.top = "10px";
+}
+function chartLeave(){
+  if(!CH) return; $("#chartTip").style.display = "none";
+  const xh = $("#xhair"); if(xh) xh.setAttribute("visibility","hidden"); const xd = $("#xdots"); if(xd) xd.innerHTML = "";
+}
+$("#chartSvg").addEventListener("pointermove", chartHover);
+$("#chartSvg").addEventListener("pointerleave", chartLeave);
+$("#chartCard").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if(b.dataset.mode) S.chart.mode = b.dataset.mode;
+  else if(b.dataset.stack) S.chart.stack = b.dataset.stack;
+  else if(b.dataset.period) S.chart.period = b.dataset.period;
+  else if(b.id==="cClear") S.chartSel = {};
+  else if(b.id==="cTable"){ const t = $("#chartTable"); t.hidden = !t.hidden; b.textContent = t.hidden ? "Voir les données" : "Masquer les données"; return; }
+  else return;
+  save(); render();
+});
+$("#tbody").addEventListener("change", e => {
+  const id = e.target.dataset.sel; if(!id) return;
+  if(e.target.checked){
+    const used = new Set(Object.values(S.chartSel));
+    const slot = [...Array(MAX_SERIES).keys()].find(i => !used.has(i));
+    if(slot===undefined){ e.target.checked = false; setStatus(`Maximum ${MAX_SERIES} positions à la fois dans le graphique.`); return; }
+    S.chartSel[id] = slot;
+  } else delete S.chartSel[id];
+  save(); render();
+});
+let rzT; window.addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(renderChart, 150); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => render());
+
+/* ============ Dialogues ============ */
+function open(id){ $(id).classList.add("open"); }
+function close(el){ el.closest(".backdrop").classList.remove("open"); }
+document.querySelectorAll(".backdrop").forEach(b => {
+  b.addEventListener("click", e => { if(e.target===b || e.target.hasAttribute("data-close")) b.classList.remove("open"); });
+});
+document.addEventListener("keydown", e => { if(e.key==="Escape") document.querySelectorAll(".backdrop.open").forEach(b=>b.classList.remove("open")); });
+
+function confirmBox(title, text){
+  return new Promise(res => {
+    $("#cfTitle").textContent = title; $("#cfText").textContent = text; open("#dlgConfirm");
+    const ok = $("#cfOk"), dlg = $("#dlgConfirm");
+    const done = v => { ok.onclick = null; dlg.classList.remove("open"); res(v); };
+    ok.onclick = () => done(true);
+    dlg.addEventListener("click", function h(e){ if(e.target===dlg || e.target.hasAttribute("data-close")){ dlg.removeEventListener("click",h); res(false);} });
+  });
+}
+
+let editing = null;
+function openPos(id){
+  const f = $("#formPos"); f.reset(); $("#posErr").textContent = "";
+  editing = id ? S.positions.find(p=>p.id===id) : null;
+  $("#posTitle").textContent = editing ? "Modifier la position" : "Ajouter une position";
+  $("#btnDelete").hidden = !editing;
+  if(editing){
+    const p = editing;
+    Object.entries({symbol:p.symbol, qty:p.qty, date:p.date, price:p.price, aAbove:p.aAbove, aBelow:p.aBelow, aGain:p.aGain, aLoss:p.aLoss, manual:p.manual, notes:p.notes, account:p.account, tags:(p.tags||[]).join(", ")})
+      .forEach(([k,v]) => { if(v!=null && v!=="") f.elements[k].value = v; });
+  } else {
+    f.elements.date.value = todayISO();
+    if(S.view.account && S.view.account!==NO_ACCT) f.elements.account.value = S.view.account;
+  }
+  f.elements.date.max = todayISO();
+  open("#dlgPos"); f.elements.symbol.focus();
+}
+const num = v => { const n = parseFloat(v); return isFinite(n) && n>0 ? n : null; };
+$("#formPos").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, err = $("#posErr"); err.textContent = "";
+  const symbol = f.elements.symbol.value.trim().toUpperCase().replace(/\s+/g,"");
+  if(!/^[A-Z0-9.\-]{1,15}$/.test(symbol)){ err.textContent = "Symbole invalide."; return; }
+  const qty = num(f.elements.qty.value);
+  if(!qty){ err.textContent = "La quantité doit être plus grande que 0."; return; }
+  const date = f.elements.date.value;
+  if(!date || date > todayISO()){ err.textContent = "Date d'achat invalide."; return; }
+  let price = num(f.elements.price.value), autoPrice = false;
+  if(!price){
+    if(!S.settings.apiKey.trim()){ err.textContent = "Entre le prix payé, ou ajoute une clé API dans Réglages pour le remplir automatiquement."; return; }
+    $("#posSave").disabled = true; err.textContent = "Recherche de la clôture du " + date + "…";
+    try{ price = await fetchClose(symbol, date); autoPrice = true; save(); }
+    catch(x){ err.textContent = x.message; $("#posSave").disabled = false; return; }
+    $("#posSave").disabled = false; err.textContent = "";
+  }
+  const data = { symbol, qty, date, price, autoPrice: autoPrice || (editing && editing.price===price ? !!editing.autoPrice : false),
+    aAbove:num(f.elements.aAbove.value), aBelow:num(f.elements.aBelow.value), aGain:num(f.elements.aGain.value), aLoss:num(f.elements.aLoss.value),
+    manual:num(f.elements.manual.value), notes:f.elements.notes.value.trim(),
+    account: (a => KNOWN.includes(a.toUpperCase()) ? a.toUpperCase() : a)(f.elements.account.value.trim()),
+    tags: [...new Set(f.elements.tags.value.split(",").map(x=>x.trim().replace(/^#/,"").toLowerCase()).filter(Boolean))] };
+  if(editing) Object.assign(editing, data); else S.positions.push({id:uid(), ...data});
+  save(); close(f); render();
+  if(S.settings.apiKey && !S.quotes[symbol]) refresh(false);
+});
+$("#btnDelete").addEventListener("click", async () => {
+  if(!editing) return;
+  const p = editing; $("#dlgPos").classList.remove("open");
+  if(await confirmBox("Supprimer la position", `Supprimer ${p.symbol} (${p.qty} achetées le ${p.date}) ?`)){
+    S.positions = S.positions.filter(x=>x.id!==p.id); delete S.chartSel[p.id]; save(); render();
+  }
+});
+
+function openSettings(){
+  const f = $("#formSet"), s = S.settings;
+  f.elements.apiKey.value = s.apiKey; f.elements.displayCcy.value = s.displayCcy;
+  f.elements.fxManual.value = s.fxManual ?? ""; f.elements.tHigh.value = s.tHigh; f.elements.tLoss.value = s.tLoss;
+  f.elements.tNeutral.value = s.tNeutral; f.elements.dailyQuota.value = s.dailyQuota||25; f.elements.dailyMove.value = s.dailyMove ?? "";
+  open("#dlgSet");
+}
+$("#formSet").addEventListener("submit", e => {
+  e.preventDefault(); const f = e.target;
+  const hadKey = !!S.settings.apiKey;
+  Object.assign(S.settings, {
+    apiKey: f.elements.apiKey.value.trim(), displayCcy: f.elements.displayCcy.value,
+    fxManual: num(f.elements.fxManual.value), tHigh: Math.abs(+f.elements.tHigh.value)||20, tLoss: Math.abs(+f.elements.tLoss.value)||10,
+    tNeutral: Math.abs(+f.elements.tNeutral.value)||0, dailyMove: num(f.elements.dailyMove.value), dailyQuota: Math.round(num(f.elements.dailyQuota.value)||25)
+  });
+  save(); close(f); render();
+  if(!hadKey && S.settings.apiKey && S.positions.length) refresh(false);
+});
+
+function openData(){
+  $("#dataErr").textContent = "";
+  renderFileBar();
+  const out = { version:1, exported: new Date().toISOString(), positions: S.positions, settings: {...S.settings, apiKey: undefined} };
+  $("#dataText").value = JSON.stringify(out, null, 2);
+  open("#dlgData");
+}
+$("#btnCopy").addEventListener("click", async () => {
+  try{ await navigator.clipboard.writeText($("#dataText").value); $("#dataErr").textContent = "Copié."; }
+  catch(e){ $("#dataText").select(); $("#dataErr").textContent = "Copie automatique refusée : le texte est sélectionné, fais Ctrl+C."; }
+});
+$("#btnCsv").addEventListener("click", () => {
+  const {rows} = compute();
+  const head = ["symbole","compte","etiquettes","devise","quantite","date_achat","prix_paye","prix_actuel","valeur","gain","rendement_pct"];
+  const lines = rows.map(r => [r.p.symbol, `"${acctOf(r.p).replace(/"/g,"")}"`, `"${(r.p.tags||[]).join(";")}"`, r.ccy, r.p.qty, r.p.date, r.p.price, r.price??"", r.value?.toFixed(2)??"", r.gain?.toFixed(2)??"", r.pct?.toFixed(2)??""].join(","));
+  $("#dataText").value = [head.join(","), ...lines].join("\n");
+  $("#dataErr").textContent = "CSV généré : copie-le dans un fichier .csv pour l'ouvrir dans Excel.";
+});
+$("#btnImport").addEventListener("click", async () => {
+  const err = $("#dataErr");
+  let d; try{ d = JSON.parse($("#dataText").value); }catch(e){ err.textContent = "Ce texte n'est pas une sauvegarde valide (JSON)."; return; }
+  if(!Array.isArray(d.positions)){ err.textContent = "Aucune liste de positions trouvée."; return; }
+  const clean = d.positions.filter(p => p && p.symbol && p.qty>0 && p.price>0 && /^\d{4}-\d{2}-\d{2}$/.test(p.date)).map(p => ({...p, id:p.id||uid(), symbol:String(p.symbol).toUpperCase()}));
+  $("#dlgData").classList.remove("open");
+  if(!await confirmBox("Importer", `Remplacer tes ${S.positions.length} position(s) actuelles par les ${clean.length} de la sauvegarde ?`)) return;
+  S.positions = clean;
+  if(d.settings){ const k = S.settings.apiKey; Object.assign(S.settings, d.settings); S.settings.apiKey = k; }
+  save(); render();
+});
+
+/* ============ Événements ============ */
+$("#btnAdd").addEventListener("click", () => openPos(null));
+$("#btnRefresh").addEventListener("click", () => refresh(true));
+$("#btnSettings").addEventListener("click", openSettings);
+$("#btnData").addEventListener("click", openData);
+$("#thead").addEventListener("click", e => {
+  const k = e.target.closest("th")?.dataset.sort; if(!k) return;
+  if(sortKey===k) sortDir = -sortDir; else { sortKey = k; sortDir = (k==="symbol"||k==="date") ? 1 : -1; }
+  render();
+});
+$("#filters").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  if("acct" in b.dataset){ S.view.account = b.dataset.acct; }
+  else if("tag" in b.dataset){ S.view.tag = S.view.tag===b.dataset.tag ? "" : b.dataset.tag; }
+  else if("group" in b.dataset){ S.view.group = !S.view.group; }
+  save(); render();
+});
+$("#tbody").addEventListener("click", e => { const id = e.target.dataset.edit; if(id) openPos(id); });
+$("#alerts").addEventListener("click", e => {
+  const id = e.target.dataset.dismiss; if(!id) return;
+  S.dismissed[id] = todayISO();
+  for(const k in S.dismissed) if(S.dismissed[k] !== todayISO()) delete S.dismissed[k];
+  save(); render();
+});
+
+$("#btnFileNew").addEventListener("click", fileNew);
+$("#btnFileOpen").addEventListener("click", fileOpen);
+$("#btnFileStop").addEventListener("click", fileStop);
+$("#fileBar").addEventListener("click", e => {
+  if(e.target.id==="btnReconnect") fileReconnect();
+  if(e.target.id==="btnFileSetup") openData();
+});
+// Relit le fichier quand on revient sur la page (au cas où un autre appareil l'a modifié).
+window.addEventListener("focus", () => { if(FILE.state==="ok" && Date.now()-FILE.lastSync > 30000) syncFromFile(); });
+window.addEventListener("beforeunload", () => { if(FILE.timer){ clearTimeout(FILE.timer); writeFile(); } });
+
+(async () => {
+  render(); renderFileBar();
+  await initFile(); render(); renderFileBar();
+  // Rafraîchit automatiquement à l'ouverture si les prix datent de plus d'une heure.
+  if(S.settings.apiKey && S.positions.length && Date.now()-S.lastRefresh > 3600*1000) refresh(false);
+})();
+</script>
+</body>
+</html>
